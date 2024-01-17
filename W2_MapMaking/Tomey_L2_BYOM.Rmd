@@ -1,0 +1,81 @@
+---
+title: "BUILD YOUR OWN MAP"
+output: html_document
+---
+```{r}
+require(tidyverse)
+require(sf)
+require(tigris)
+require(geodata)
+require(terra)
+require(colorspace)
+require(tidyterra)
+require(ggnewscale)
+require(cowplot)
+
+```
+
+## A couple sentence background about the study and study area you are mapping
+
+
+## Information on where you got your spatial elements and why you chose them
+
+
+## Raster and vector elements
+At least one spatial vector element (created or downloaded) (1 point)
+At least one spatial raster element (created or downloaded) (1 point)
+A third element (can be vector or raster) (1 point)
+Note that in the example we went through in lab, I consider that the final product has 2 raster elements (elevation and old growth cover), and two vector elements (the sampling points, and the state of Oregon's boundary). The extent rectangle doesn't count.
+An interpretable legend (1 points)
+Fully reproducible (I want to be able to open your .rmd, press run, and have your output)  (1 point)
+
+
+## Zoomed-out map (4 points)
+Extent rectangle on the zoomed-out map (1 point)
+
+Adding the study area and bounding box
+```{r}
+#Read in study area shapefile 
+siteData = st_read()
+
+#Extract x and y coordinates of the bounding box
+studyArea = st_bbox(siteSf)
+studyArea
+
+#Let's add 2000 m to each dimension
+studyArea = studyArea + c(-2000, -2000, 2000, 2000)
+studyArea
+
+#And now we convert it to a spatial sfc object
+studyArea = st_as_sfc(studyArea)
+
+plot(studyArea)
+```
+
+Adding the state boundary and transforming the state boundary to the same coordinate system as the study area 
+```{r}
+oregon = states() %>% 
+  filter(NAME=='Oregon')
+
+plot(st_geometry(oregon))
+
+st_crs(oregon)$proj4string
+
+oregon = st_transform(oregon, st_crs(siteSf))
+```
+
+Plotting 
+```{r}
+plot(st_geometry(oregon))
+plot(studyArea, col='red', add=T)
+plot(st_geometry(siteSf), add=T)
+```
+
+
+## Zoomed-in map (4 points)
+
+
+## A short paragraph (within your .rmd file) describing the figure in which you include (5 points)
+
+Do your best to make it relatively neat (1 point)
+~ One bonus point if you can figure out how to add a north arrow and scale bar to your figure.
