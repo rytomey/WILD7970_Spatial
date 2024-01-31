@@ -172,7 +172,8 @@ ggdraw(legend)
 
 ```
 
+# Grade
 
-
+$\color{red}{\text{Great stuff, Rylee. You lost half a point for neatness because I can't really read the scale bar. Otherwise, nice work.}}$
 
 
