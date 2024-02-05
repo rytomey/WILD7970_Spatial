@@ -27,7 +27,7 @@ set.seed(23)
 simpRast[] = rpois(ncell(simpRast), lambda=3)
 
 plot(simpRast)
-text(simpRast, digits=2)
+# text(simpRast, digits=2)
 
 # Calculate the mean and variance of the values in the raster
 global(simpRast, mean)
@@ -37,15 +37,15 @@ global(simpRast, var)
 
 simpRast2 <- aggregate(simpRast, fact=2, fun='mean')
 plot(simpRast2)
-text(simpRast2,digits=1)
+# text(simpRast2,digits=1)
 
 simpRast5 <- aggregate(simpRast, fact=5, fun='mean')
 plot(simpRast5)
-text(simpRast5,digits=1)
+# text(simpRast5,digits=1)
 
 simpRast10 <- aggregate(simpRast, fact=10, fun='mean')
 plot(simpRast10)
-text(simpRast10,digits=1)
+# text(simpRast10,digits=1)
 
 # Calculate the mean and variance of the values in the resulting raster (each iteration)
 mean(as.matrix(simpRast2))
@@ -79,12 +79,15 @@ plot(x, y2, main = "Grain X Variance",
 abline(lm(y2 ~ x, data = grain), col = "blue")
 
 ```
+$\color{red}{\text{The raster plots are a lot cleaner if you remove the text as I did above.}}$
 
 #### What do you notice about how these values change as you "scale up" the grain size? 
 As the grain size is scaled up or made more coarse, the variance between the values decreases. As the variance decreases, the mean between the values stays the same as you scale up grain size. The scaled up mean values move closer to the global raster mean (3.0078). 
 
 #### Why do you think this pattern occurs?
 This pattern occurs because as the raster is scaled up, the values for each larger cell of the raster are calculated by taking the average of the smaller cells in the finer grain raster. Hypothetically, if you kept scaling up the grain of the raster until their was one cell left that was the average of the entire raster, it would be equal to 3.0078. Therefore, the coarser the scale, the closer each cell value gets to the mean. This is also why there is a decrease in variance as the raster is scaled up. As the cells become closer and closer to the mean, the difference between them will be less because the cells much greater or less than the average would only have been present at a more fine grained scale before the cells are aggregated by mean. 
+
+$\color{red}{\text{Awesome. +4}}$
 
 ## Challenge 2 (4 points)
 
@@ -143,12 +146,16 @@ One situation in which is may be useful to use a summary function like mode when
 #### Do you see a similar pattern? Compare and contrast your findings with those from Challenge 1. 
 Regardless of summary function (mean or mode) the variance of the values decreases as grain size increases. However, the mean of the values increases as you scale up the grain of a raster when using the mode summary function, while it stays the same using the mean function. 
 
+$\color{red}{\text{Why do you think this difference is occurring? +3.5}}$
+
 
 ## Challenge 3 (2 points)
 
 **Recall that before we calculated forest cover, we cropped our NLCD raster to minimize its size and the computing effort necessary from our poor little computers. How might that affect our ability to evaluate the scale at which five-lined skinks respond to forest cover? Why?**
 
 The cropped NLCD raster may affect the ability to evaluate the scale at which five-lined skinks respond to forest cover by introducing edge effects that influence skunk presence or by excluding features beyond the extent that influence presence. This is likely to be more of an issue when looking at more coarse scales in relation to skink presence. 
+
+$\color{red}{\text{Yup. Specifically at scales greater than 10 km because that's what we used for our cropping. +2}}$
 
 ## Challenge 4 (4 points)
 
@@ -272,6 +279,8 @@ forestData %>%
 #### What patterns do you notice in correlation among these variables?
 One pattern in correlation among the variables is that they depict positive relationships. It appears that the strongest correlations are between 4km + 5km, 2km + 3km and 3km + 4km. However, at the finer scales of 1km, 100m and 500m the same pattern of correlations are not observed. For the finer scales, all correlation plots have a lot of variance in their plots even if they have relatively high pearson correlation values.  
 
+$\color{red}{\text{And variables that are further apart in space are less correlated with one another. +3.5}}$
+
 
 ## Challenge 5 (4 points)
 
@@ -320,11 +329,13 @@ Forest cover at the 2km scale could affect skink presence by including resource 
 #### What is your overall conclusion regarding how forest cover affects skink presence (i.e., take a look at the betas)?
 There is a significant increase in the likelihood of skink presence with an increase in forest cover because both the 2km and 4km scales have positive beta coefficients. The confidence intervals for 2km and 4km mostly overlap, suggesting the use of the scales may not be distinct. 
 
+$\color{red}{\text{Nice. +4}}$
+
 ## Challenge 6 (2 points)
 
 **If you encounter ambiguity in identifying the characteristic scale of an effect, can you come up with a clever way to condense the information in the multi-scale variables into just one or two? When might it be ok to include two covariates in the same model (think multiple regression) that represent the same ecological feature measured at different scales (e.g., forest cover at 1 km AND forest cover at 5 km in the same model)? I can think of both a biological and a statistical answer to this question.**
 To condense the information in the multi-scale variables into just one, you could run a principle component analyses to capture the effect of a newly made variable for analyses that incorporates multiple scales. It may be beneficial to include two covariates in the same model if there is an anticipated combined effect of both scales on the response. For example, if you are looking into the effect of forest cover and the habitat is heterogeneous, both scales may be useful if they depict unique information. 
 
 
-
+$\color{red}{\text{Nice! +2}}$
 
