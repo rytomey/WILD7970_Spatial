@@ -151,12 +151,16 @@ pmetric <- read.csv('https://raw.githubusercontent.com/rytomey/WILD7970_Spatial/
 
 pmetric %>% 
   as.data.frame() %>% 
+  select(-Patch_ID) %>% 
   PerformanceAnalytics::chart.Correlation(histogram=F)
 
 ```
 
 ##### What patterns do you notice, and what do they tell you about the uniqueness or redundancy of the patch-level metrics you calculated?
 From the correlation chart, I can see that some of the patch metrics are negatively correlated with one another, while others are positively correlation with one another. Patch metrics including 'shape/frac', 'area/core', and 'contig/para' are very strongly correlated (positive or negative), while there are several metrics that are not significantly correlated, such as 'circle/core'. Although the use of all 12 patch metrics may provide redundant information, the use several metrics should provide unique information about different patches. 
+
+$\color{red}{\text{Nice. +4}}$
+
 
 
 ## Challenge 2 (4 points)
@@ -221,6 +225,9 @@ Nearest-Neighbor: Typically, the distance neighbors is shorter with the queen ru
 Total Edge: The length of total edge is greater for the queen rule compares to the rook rule. 
 
 Overall, the queen rule tends to produce more patches that are more intricate. Therefore, it may be beneficial to use in when landscape complexity and a fine scale is important to the study or question. Additionally, movement studies may benefit from the use of queen rule because it considers diagonal connections, while the rook rule does not. On the other hand, the rook rule simplifies/aggregates patches. This may be a beneficial strategy when looking at larger areas or coarse grain. 
+
+$\color{red}{\text{I think you've switched the "queen" and "rook" rule in your head. Directions=8 is the "queen rule" while directions=4 is the "rook rule." We should be seeing more patches of smaller size under rook than queen. +3}}$
+
 
 ## Challenge 3 (4 points)
 
@@ -336,6 +343,9 @@ lsm_l_shei(nlcdSimple19)
 
 #### Give a short description of how you interpret the changes in these values.
 Both the Shannon Diversity index and the Shannon Evenness index increase from 2011 to 2019. This suggests that the diversity and evenness of the landcover types spread out across a landscape increases between 2011 and 2019. An increase in both metrics is likely due to the fact that patches of land cover such as grassland, barren/shrub, and agriculture increase and are distributed throughout more of the study area/landscape in 2019 compared to 2011. 
+
+$\color{red}{\text{Awesome. +4}}$
+
 
 ## Challenge 4 (4 points)
 
@@ -478,6 +488,9 @@ Landscape Level Metrics Used
 2. Number of Patches: I chose this metric because it appeared in the maps that in the middle thresholds of cover, there were more patches across the landscape compared to the low and high coverage, but it is hard to tell definitely visually. The number of patches did increase as the coverage increased, up to around 35-40%, then the number of patches declined in steep increments. 
 
 3. Landscape Division Index: I chose this metric because I already had something related to the number of patches and area of patches, so I thought this would fill the gap in terms of how the patches are connected or distributed throughout the landscape. This metric produced almost a normal curve with the division increasing up until 50% and then decreasing after. 
+
+$\color{red}{\text{Great! +4}}$
+
 
 
 ## Challenge 5 (4 points)
@@ -649,3 +662,6 @@ Landscape Metrics
 1. Conditional Entropy: I chose to use this metric because I wanted to see how complexity of the landscape changed over time as patches decreased. As the H value increased and the clustering of patches made the cover simpler the conditional entropy decreased. 
 2. Euclidean Nearest Neighbor Mean: I chose this metric because I anticipated that as the cover became more clustered, the distance between neighboring patches would decrease. However, the distance to neighbor increased gradually until around H=0.9 where it then increased rapidly. This is likely because the mean was at one time calculated between several close patches, but is now calculated between fewer patches that are spread out over a greater area.
 3. Gyration Mean: I chose this metric because it is a more complex metric and I wanted to see how the distance between cells and the patch matrix would change as the number of patches decreased. As H increased, the gyration mean also increased. 
+
+
+$\color{red}{\text{Awesome work, Rylee! +4}}$
