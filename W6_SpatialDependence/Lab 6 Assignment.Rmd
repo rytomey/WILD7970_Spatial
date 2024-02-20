@@ -1,0 +1,254 @@
+---
+title: "Tomey - Lab 6 - Spatial Dependence"
+output: html_notebook
+---
+
+```{r}
+
+rm(list=ls())
+
+require(tidyverse)
+require(pgirmess)
+require(ncf)
+library(geoR)
+require(raster)
+require(terra)
+
+```
+
+
+# Background
+
+Researchers set up a square plot with a dimension of 130 m on each side. Within the plot they established blue vane traps in a 5 m grid pattern to sample bee abundance. Every day for 10 days the researchers emptied the blue vane traps and recorded the number of bees collected. After the 10-day sampling period, they calculated the mean daily number of bees captured in the trap each day.
+
+# Challenge 1 (2 points)
+
+Import the blueVanes.csv file from GitHub. Plot the mean bee abundance as a function of the x and y coordinates.
+
+```{r}
+
+bVanes = read.csv("https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week6/blueVanes.csv")
+head(bVanes)
+
+ggplot(bVanes, aes(x=x, y=y, color=meanBee))+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid=element_blank())+
+  scale_color_gradient(low='black', high='yellow')
+
+```
+
+**Upon initial inspection, does there appear to be spatial dependence in the bee response data?**
+There does appear to be spatial dependence in the bee response data. Points with similar abundance values (high and low) have similar values at surrounding points. 
+
+
+
+# Challenge 2 (3 points)
+
+Empirically test for evidence of spatial dependence in bee abundance by first building a corelogram, then building a semi-variogram. Be sure to provide an envelope for assessing whether the values in each figure are statistically different from what would be expected if the bee values were randomly distributed.
+
+
+#### Correlogram
+```{r}
+
+coords = cbind(bVanes$x, bVanes$y)
+colnames(coords) = c('x', 'y')
+distMat = as.matrix(dist(coords))
+maxDist = (2/3) * max(distMat)
+maxDist
+
+correlogNcf = ncf::correlog(x = bVanes$x, y=bVanes$y, z=bVanes$meanBee, increment=5, resamp=100)
+
+tmp = cbind(correlogNcf$n,
+            correlogNcf$mean.of.class,
+            correlogNcf$correlation,
+            correlogNcf$p) %>% 
+  data.frame() %>% 
+  set_names(c('n', 'dist', 'corr', 'p')) %>% 
+  mutate(significant = ifelse(p < 0.05, 'yes', 'no'))
+
+coorO = ggplot(tmp, aes(x=dist, y=corr))+
+  geom_line()+
+  geom_point(aes(color=significant, size=n))+
+  scale_color_manual(values=c('black', 'yellow'))+
+  theme_bw()+
+  theme(panel.grid=element_blank())+
+  geom_hline(yintercept=0, linetype='dashed')+
+  geom_vline(xintercept=maxDist, color='orange')+
+  scale_x_continuous(breaks=seq(0, 130, 10))
+coorO
+
+
+```
+#### Variogram + Envelope
+```{r}
+
+geoBee = as.geodata(bVanes)
+plot(geoBee)
+
+empGeorB = variog(geoBee, max.dist=maxDist, breaks=seq(0, maxDist, by=3))
+plot(empGeorB)
+
+empEnv = variog.mc.env(geoBee, obj.var=empGeorB, nsim=99)
+plot(empGeorB, envelope=empEnv)
+
+```
+
+**Describe the patterns you see, and your interpretation with regards to the spatial dependence in mean bee abundance.**
+In the correlogram, there is evidence for positive spatial autocorrelation in bee abundance out to about 25 m and then again around 65m. There is evidence of significant negative spatial autocorrelation between 26-50m and 75-89m. 
+In the variogram, there is no observable nugget value, the points fall within the dotted lines after 25m. 
+
+**Be sure to identify the maximum distance at which you should interpret your figures (2/3 of the maximum distance between points).**
+The maximum distance to interpret figures = 89.56686 and is represented by the orange line in the figures. 
+
+
+# Challenge 3 (4 points)
+
+Fit a simple linear model (assuming a normally distributed error term) that models mean bee abundance as a function of an intercept only (no other covariates in the model). Compare the model-estimated intercept to the bee abundance values averaged across all sites.  
+
+#### Linear Model (intercept-only)
+```{r}
+
+lmB = lm(meanBee ~ 1, data = bVanes)
+
+intercept = coef(lmB)[1]
+meanBA = mean(bVanes$meanBee)
+
+print(intercept)
+#13.9322
+print(meanBA)
+#13.9322
+
+```
+**What do you notice?**
+The model-estimated intercept and the bee abundance values averaged across all sites are the same value (13.9322). 
+
+
+Empirically test for evidence of spatial autocorrelation IN THE MODEL RESIDUALS by first building a correlogram, then building a semi-variogram. Be sure to provide an envelope for assessing whether the values in each figure are statistically different from what would be expected if the bee values were randomly distributed in space. Compare these figures to those built for the raw data.
+
+#### Correlogram
+```{r}
+
+Rlm = residuals(lmB)
+correlogPgirmess = pgirmess::correlog(coords, Rlm , method='Moran', nbclass=14, alternative = 'two.sided')
+
+round(correlogPgirmess, 2)
+
+tmp = data.frame(correlogPgirmess) %>%
+  mutate(significant = ifelse(p.value < 0.05, 'yes', 'no'))
+
+corrRLM = ggplot(tmp, aes(x=dist.class, y=coef))+
+  geom_line()+
+  geom_point(aes(color=significant, size=n))+
+  scale_color_manual(values=c('black', 'yellow'))+
+  theme_bw()+
+  theme(panel.grid=element_blank())+
+  geom_hline(yintercept=0, linetype='dashed')+
+  geom_vline(xintercept=maxDist, color='orange')+
+  scale_x_continuous(breaks=seq(0, 130, 10))
+corrRLM
+
+```
+#### Variogram + Envelope
+```{r}
+
+geoBR = as.geodata(cbind(coords, Rlm))
+plot(geoBR)
+
+empGeorR = variog(geoBR, max.dist = maxDist, breaks = seq(0, maxDist, by = 3))
+plot(empGeorR)
+
+empEnvR = variog.mc.env(geoBR, obj.var = empGeorR, nsim = 99)
+plot(empGeorR, envelope = empEnvR)
+
+
+```
+**What similarities or differences to you notice?**
+Compared to the original correlogram, the pattern of spatial dependence appears to be the same (positive -> negative -> positive -> negative). However, the negative spatial correlation appears to be more significant or extreme, especially near the 80m distance. The variograms are very similar as well. It does appear that one more point around the 60m distance does fall outside of the dotted lines. The sill, range, and nugget are all the same. 
+
+
+
+# Challenge 4 (4 points)
+
+Conventional wisdom indicates that the distribution of floral resources may substantially influence bee abundance. In addition, I am  completely making up the following fact: the average bee has a perceptual range of about 15 m. Below I have provided code for importing a raster that shows the number of flowers counted in 1 m grid cells across the entire study area. Use the focal() function from the previous lab to generate a new raster in which each cell value represents the mean number of flowers in cells within a 15 m radius. Plot the distribution of the blue vane traps over the 15 m focal raster. No text required here, just show me the plot.
+
+#### Focal(mean) of Flor within 15m radius
+```{r}
+
+flor = raster('https://github.com/ValenteJJ/SpatialEcology/blob/main/Week6/floralResources.tif?raw=true')
+
+florM = focalMat(flor, 15, type='circle', fillNA=FALSE)
+
+florM
+
+florWith0 = flor
+florWith0[is.na(florWith0)] = 0
+
+flor30 = focal(florWith0, florM, fun='mean')
+
+plot(flor30)
+plot(flor)
+
+```
+
+
+# Challenge 5 (4 points)
+
+Extract the focal flower value from the raster you just created at each point using the extract() function. You now have an estimate for the average number of flowers per meter around each blue vane trap. Fit a second linear model, but this time include average floral abundance within 15 m as a covariate. Export the residuals from this fitted model, and again, examine a corelogram and variogram of the residuals. As always, be sure to plot random envelopes.
+
+#### Extracting Focal Flor + Linear Model 
+```{r}
+
+FlorF = extract(flor30, coords)
+
+FlorLM = lm(meanBee ~ FlorF, data = bVanes)
+
+FlorBR <- residuals(FlorLM)
+
+
+```
+
+#### Correlogram
+```{r}
+
+correlogPgirmessF = pgirmess::correlog(coords, FlorBR , method='Moran', nbclass=14, alternative = 'two.sided')
+
+round(correlogPgirmessF, 2)
+
+tmp = data.frame(correlogPgirmessF) %>%
+  mutate(significant = ifelse(p.value < 0.05, 'yes', 'no'))
+
+corrflor = ggplot(tmp, aes(x=dist.class, y=coef))+
+  geom_line()+
+  geom_point(aes(color=significant, size=n))+
+  scale_color_manual(values=c('black', 'yellow'))+
+  theme_bw()+
+  theme(panel.grid=element_blank())+
+  geom_hline(yintercept=0, linetype='dashed')+
+  geom_vline(xintercept=maxDist, color='orange')+
+  scale_x_continuous(breaks=seq(0, 130, 10))
+corrflor
+
+```
+#### Variogram + Envelope
+```{r}
+
+geoFBR = as.geodata(cbind(coords, FlorBR))
+plot(geoBR)
+
+empGeorFBR = variog(geoFBR, max.dist = maxDist, breaks = seq(0, maxDist, by = 3))
+plot(empGeorFBR)
+
+empEnvFBR = variog.mc.env(geoFBR, obj.var = empGeorFBR, nsim = 99)
+plot(empGeorFBR, envelope = empEnvFBR)
+
+```
+**Now what do you notice?**
+In the correlogram, there is no evidence for significant positive spatial autocorrelation in bee abundance. There is evidence of significant negative spatial autocorrelation in bee abundance around 40m. 
+In the variogram, the values almost all fit within the dotted lines completely. 
+
+# Challenge 6 (3 points)
+
+**What is your assessment regarding the distribution of bee abundance in this study area? Does it exhibit spatial dependence, and if so, what is driving that pattern?**
+
+The distribution of bee abundance in this study area exhibits spatial dependence. In analyses, we saw a significant impact on the measures and figures of spatial autocorrelation when we considered flowers. The correlogram and variogram that incorporated this effect did not have any positive spatial autocorrelation and only had one significant distance with negative spatial autocorrelation. Therefore, it is likely that floral resources are driving the distribution of bee abundance within the study area. 
