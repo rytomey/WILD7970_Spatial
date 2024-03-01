@@ -44,6 +44,7 @@ plot(lCsr, .-r~r, shade=c('hi', 'lo'), legend=F)
 92 organisms 
 **What is the expected number of organisms that you should find on this landscape based on your simulation parameters? Why?**
 10,000 x 0.01 = 100 expected organisms. Using the Poisson process, the expected number of organisms within an area is equal to the product of the lambda (0.01) and the area of the window (100 x 100). 
+$\color{red}{\text{Perfect. +3}}$
 
 
 # Challenge 2 (3 points)
@@ -66,6 +67,9 @@ plot(simO, add=T)
 **Explain your conclusion.**
 I calculated the AIC value for my three models:  The first assumes a homogeneous point process, the second assumes the intensity is a linear function of x and y coordinates, and the third assumes that there is a quadratic trend in the distribution. The model with the intercept-only (int) has the lowest AIC value (1048.694), the model with linear terms has a slightly higher AIC value (1051.817), and the model with quadratic terms has the highest AIC value (1054.004).
 The intercept-only model has the lowest AIC, suggesting that there is no significant linear or quadratic pattern in the distribution of the organisms. The same is suggested by the trend plot of the fitted model with just the intercept. 
+
+$\color{red}{\text{Nice. +3}}$
+
 
 # Challenge 3 (14 points)
 
@@ -149,3 +153,6 @@ plot(lMultiCritter1, . - r ~ r, legend = FALSE, main = "Conditional Distribution
 **Identify which one is the predator and which is the prey, and provide code and a thorough justification supporting your conclusion.**
 Based on the analyses above, I believe that Critter 1 = prey and Critter 2 = predator. 
 In the pair correlation function, critter 1 is spatially aggregated at ~4 and ~7 units while critter 2 is aggregated at ~7-14 units. In the nearest neighbor analysis, critter 1 and 2 are random at the small and large spatial scales. However, critter 2 is closer than expected between r= 3 - 7. Critter 1 mostly stays near random, indicating a more dispersed/random distribution. Individually, critter 1 is more likely to be the prey of Critter 2, as it appears critter 1 distribution becomes more clumped in response to critter 2.I believe that Critter 2 is the predator, and Critter 1 is the prey. Critter 2 demonstrates spatial behaviors and interactions consistent with a predator, such as aggregation, lower nearest neighbor distances, and clustering of Critter 1 around it. Conversely, Critter 1 displays spatial patterns indicative of prey behavior, with a more dispersed distribution and clustering around Critter 2.
+
+$\color{red}{\text{Awesome work, Rylee. +14}}$
+
