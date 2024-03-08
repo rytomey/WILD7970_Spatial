@@ -1,0 +1,459 @@
+---
+title: "Tomey - Lab 8: Species Distribution Modeling"
+output: html_notebook
+---
+
+```{r}
+
+require(tidyterra)
+require(dismo)
+require(tidyverse)
+require(terra)
+require(predicts)
+require(ggnewscale)
+require(mgcv)
+require(randomForest)
+require(maxnet)
+require(enmSdmX)
+require(gbm)
+
+```
+
+# Adding and Processing Data
+
+Varied Thrush - Presence/Absence
+```{r}
+
+vathData = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week8/vath_2004.csv')
+
+vathPres = vathData %>% filter(VATH==1)
+vathAbs = vathData %>% filter(VATH==0)
+
+vathPresXy = as.matrix(vathPres %>% select(EASTING, NORTHING))
+vathAbsXy = as.matrix(vathAbs %>% select(EASTING, NORTHING))
+
+```
+
+Subset points for validation
+```{r}
+
+vathVal = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week8/vath_VALIDATION.csv')
+
+vathValPres = vathVal %>% filter(VATH==1)
+vathValAbs = vathVal %>% filter(VATH==0)
+
+vathValXy = as.matrix(vathVal %>% select(EASTING, NORTHING))
+vathValPresXy = as.matrix(vathValPres %>% select(EASTING, NORTHING))
+vathValAbsXy = as.matrix(vathValAbs %>% select(EASTING, NORTHING))
+
+```
+
+Importing covariate data
+```{r}
+elev = rast('https://github.com/ValenteJJ/SpatialEcology/raw/main/Week8/elevation.tif')
+canopy = rast('https://github.com/ValenteJJ/SpatialEcology/raw/main/Week8/canopy.tif')
+mesic = rast('https://github.com/ValenteJJ/SpatialEcology/raw/main/Week8/mesic.tif')
+precip = rast('https://github.com/ValenteJJ/SpatialEcology/raw/main/Week8/precip.tif')
+
+crs(elev) = crs(mesic)
+crs(canopy) = crs(mesic)
+
+```
+
+Projection, extent, resolution
+```{r}
+mesic = resample(x = mesic, y = elev, 'near')
+precip = resample(x = precip, y = elev, 'bilinear')
+
+mesic = mask(mesic, elev)
+precip = mask(precip, elev)
+```
+
+New Raster = amount of mesic forest within 1 km of my sampling locations.
+```{r}
+probMatrix = focalMat(mesic, 1000, type='circle', fillNA=FALSE)
+mesic1km = focal(mesic, probMatrix, fun='sum')
+
+```
+
+Removed Mesic
+```{r}
+layers = c(canopy, elev, mesic, mesic1km, precip)
+names(layers) = c('canopy', 'elev', 'mesic', 'mesic1km', 'precip')
+plot(layers)
+
+pairs(layers, maxpixels=1000)
+layers = c(canopy, elev, mesic1km, precip)
+names(layers) = c('canopy', 'elev', 'mesic1km', 'precip')
+
+```
+
+Background points
+```{r}
+
+set.seed(23)
+
+backXy = data.frame(backgroundSample(layers, n=2000, p=vathPresXy))
+
+ggplot()+
+  geom_raster(data=elev, aes(x=x, y=y, fill=elev_km))+
+  geom_point(data=backXy, aes(x=x, y=y))+
+  geom_point(data=vathPres, aes(x=EASTING, y=NORTHING), color='red', alpha=0.3)+
+  coord_fixed()
+
+```
+Converting covariate rasters to dataframes
+```{r}
+
+presCovs = extract(layers, vathPresXy)
+backCovs = extract(layers, backXy)
+valCovs = extract(layers, vathValXy)
+
+presCovs = data.frame(vathPresXy, presCovs, pres=1)
+backCovs = data.frame(backXy, backCovs, pres=0)
+valCovs = data.frame(vathValXy, valCovs)
+
+```
+
+Removing sites without explanatory variables + combine background points with presence points
+```{r}
+
+presCovs = presCovs[complete.cases(presCovs),]
+backCovs = backCovs[complete.cases(backCovs),]
+valCovs = valCovs[complete.cases(valCovs),]
+
+
+backCovs = backCovs %>% select(-ID)
+colnames(presCovs)[1:2] = c('x', 'y')
+
+presBackCovs = rbind(presCovs, backCovs)
+
+```
+
+# Challenge 1 (4 points)
+
+In the lab, we created 6 species distribution models (SDMs) for the same species using 6 different techniques. Plot the maps generated from:
+
+#### (1) the bioclim envelope function
+```{r}
+tmp = presCovs %>% select(elev, precip, mesic1km, canopy) %>% 
+  as.matrix()
+
+bioclim = envelope(tmp)
+
+
+plot(bioclim, a=1, b=2, p=0.95)
+plot(bioclim, a=1, b=3, p=0.95)
+plot(bioclim, a=3, b=4, p=0.95)
+
+bioclimMap = predict(layers, bioclim)
+
+```
+#### (2) the GLM model
+```{r}
+
+glmModel = glm(pres ~ canopy + elev + I(elev^2) + mesic1km + precip, family='binomial', data=presBackCovs)
+
+summary(glmModel)
+
+glmMap = predict(layers, glmModel, type='response')
+
+
+```
+
+#### (3) the random forest model next to one another
+```{r}
+
+tuneRF(y = as.factor(presBackCovs$pres), x=presBackCovs[,3:6], stepFactor = 2, ntreeTry = 500)
+
+rfModel = randomForest(as.factor(pres) ~ canopy + elev + mesic1km + precip, data=presBackCovs, mtry=2, ntree=500, na.action = na.omit)
+
+rfMap = predict(layers, rfModel, type='prob', index=2)
+
+```
+
+### Comparison of maps produced by different SDM models
+```{r}
+
+plot(bioclimMap, main = 'Bioclim Envelope')
+plot(glmMap, main = 'GLM')
+plot(rfMap, main = 'Random Forest')
+
+```
+
+**What similarities and differences do you notice among these maps? What might explain some of these differences?**
+
+All three models show that along the western region of the map has the highest probability of varied thrush presence. One difference is that the Bioclim and random forest models portray little to no chance of varied thrush presence surrounding the high probability patches. Another difference is that the GLM and Bioclim models show a higher probability of varied thrush presence in the main patches shared by all the models when compared to the random forest model. A third difference is that while the scale representing the probability of presence for the random forest and bioclim models go up to 0.80, the GLM model peaks at 0.35. A fourth difference is that the GLM and Bioclim maps have more aggregated  and larger patches representing areas with greater probability of varied thrush presence within the main western region compared to the random forest map which has more and smaller patches representing areas where varied thrush may be present. Finally, the random forest and Bioclim maps appear much more detailed around different landscape features such as hydrological features when compared to the GLM map. 
+
+The differences in resolution between the maps can be explained by the fact that the random forest and Bioclim models account for the complex interactions between predictor variables and therefore appear at a finer scale than the GLM model. Similarly, the GLM map scale having a maximum probability of varied thrush presence that was lower (0.35) compared to the Bioclim and random forest map scale maximum value (0.80) could be due to the fact that the model is more conservative in estimating the probability of presence because it interprets the relationship between covariates and presence only as linear and/or polynomial. The areas with 0% probability of varied thrush presence in the Bioclim map may represent an over simplified distribution of varied thrush as a result of the model weighing all covariates the same and not accounting for how the covariate actually influences the presence/absence of varied thrush. Ultimately, the random forest map is likely the most accurate map in predicting varied thrush distribution as the model is able to account for non-linear relationships, interactions between predictor variables and lower remaining uncertainty in the probability of varied thrush distribution by creating a bunch of classification trees through random bootstrapping. 
+
+
+
+
+# Challenge 2 (4 points)
+
+When we fit our GLM in lab, we used background points, rather than true absence points, to represent pseudo-absences. Fit the exact same GLM model, only this time use presence and true absence data. That is, replace the background rows in the dataframe with rows that represent actual sites where surveys were completed but Varied Thrush were not detected. Once you've fit the GLM, build a new SDM from this fitted model and visually compare the prediction surface to that built based on the presence-background model.
+```{r}
+
+vathData2 = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week8/vath_2004.csv')
+
+vathPres2 = vathData2 %>% filter(VATH==1)
+vathAbs = vathData2 %>% filter(VATH==0)
+
+vathPresXy2 = as.matrix(vathPres2 %>% select(EASTING, NORTHING))
+vathAbsXy = as.matrix(vathAbs %>% select(EASTING, NORTHING))
+
+vathVal2 = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week8/vath_VALIDATION.csv')
+
+vathValPres2 = vathVal2 %>% filter(VATH==1)
+vathValAbs = vathVal2 %>% filter(VATH==0)
+
+vathValXy2 = as.matrix(vathVal2 %>% select(EASTING, NORTHING))
+vathValPresXy2 = as.matrix(vathValPres2 %>% select(EASTING, NORTHING))
+vathValAbsXy = as.matrix(vathValAbs %>% select(EASTING, NORTHING))
+
+```
+
+Extracting covariates for inclusion in the true absence GLM model
+```{r}
+
+presCovs2 = extract(layers, vathPresXy2)
+absCovs = extract(layers, vathAbsXy)
+valCovs2 = extract(layers, vathValXy2)
+
+presCovs2 = data.frame(vathPresXy2, presCovs2, pres=1)
+absCovs = data.frame(vathAbsXy, absCovs, pres=0)
+valCovs2 = data.frame(vathValXy2, valCovs2)
+
+presCovs2 = presCovs2[complete.cases(presCovs2),]
+absCovs = absCovs[complete.cases(absCovs),]
+valCovs2 = valCovs2[complete.cases(valCovs2),]
+
+presAbsCovs = rbind(presCovs2, absCovs)
+
+glmModel2 = glm(pres ~ canopy + elev + I(elev^2) + mesic1km + precip, family='binomial', data=presAbsCovs)
+
+summary(glmModel2)
+
+glmMap2 = predict(layers, glmModel2, type='response')
+
+
+```
+
+### GLM species distribution maps: Background Absence vs Actual Absence
+```{r}
+
+plot(glmMap, main = "Background")
+plot(glmMap2, main = "Absence")
+
+```
+
+**What discrepancies do you notice, and what is your intuition regarding which of these two models is more reliable?**
+
+The background GLM appears to be more conservative in the values assigned for probability of varied thrush presence with a maximum of 0.35 compared to a maximum of 0.8 for the true absence GLM. Furthermore, the true absence GLM map appears to be more certain of which areas in the map have little to no change of varied thrush presence (probability closer to 0.0) compared to the background GLM map which has the lower probability areas for varied thrush presence represented by a probability of presence greater than 0. A major discrepency between the two GLM maps is that they predict slightly different areas representing the greatest probability of varied thrush distribution. 
+
+My intuition is that the true absence GLM model is more reliable in this instance. I believe the true absence GLM model is more reliable because the probability of presence and absence appears to be more defined in the map by either high probability of presence or little to no probability of presence. In contrast, the background GLM map depicts that the there is at greatest a 35% chance that varied thrush will be present within any region of the study area. However, background GLM models may be more reliable in some instances as it is difficult to collect true absence data that accurately represents a location where a species is known to be absent compared to locations where the species was simply not detected during sampling.
+
+
+# Challenge 3 (4 points)
+
+
+### Comparing GLMs: Relationship between explanatory variables and the predicted occupancy values
+```{r}
+
+tmp = expand.grid(elev = seq(min(absCovs$elev), max(absCovs$elev), length=1000),
+                  canopy = mean(absCovs$canopy),
+                  precip = mean(absCovs$precip),
+                  mesic1km = mean(absCovs$mesic1km))
+
+elevData = data.frame(glm = predict(glmModel, tmp, type='response'),
+                      glm2 = predict(glmModel2, tmp, type='response')) %>% 
+  cbind(tmp) %>% 
+  select(glm:elev) %>% 
+  pivot_longer(glm:glm2) %>% 
+  mutate(variable = 'elevation')
+
+tmp = expand.grid(elev = mean(absCovs$elev),
+                  canopy = seq(min(absCovs$canopy), max(absCovs$elev), length=1000),
+                  precip = mean(absCovs$precip),
+                  mesic1km = mean(absCovs$mesic1km))
+
+canopyData = data.frame(glm = predict(glmModel, tmp, type='response'),
+                        glm2 = predict(glmModel2, tmp, type='response')) %>% 
+  cbind(tmp) %>% 
+  select(glm:glm2, canopy) %>% 
+  pivot_longer(glm:glm2) %>% 
+  mutate(variable = 'canopy')
+
+
+tmp = expand.grid(elev = mean(absCovs$elev),
+                  canopy = mean(absCovs$canopy),
+                  precip = seq(min(absCovs$precip), max(absCovs$precip), length=1000),
+                  mesic1km = mean(absCovs$mesic1km))
+
+precipData = data.frame(glm = predict(glmModel, tmp, type='response'),
+                        glm2 = predict(glmModel2, tmp, type='response')) %>% 
+  cbind(tmp) %>% 
+  select(glm:glm2, precip) %>% 
+  pivot_longer(glm:glm2) %>% 
+  mutate(variable = 'precipitation')
+
+
+tmp = expand.grid(elev = mean(absCovs$elev),
+                  canopy = mean(absCovs$canopy),
+                  precip = mean(absCovs$precip),
+                  mesic1km = seq(min(absCovs$mesic1km), max(absCovs$mesic1km), length=1000))
+
+mesicData = data.frame(glm = predict(glmModel, tmp, type='response'),
+                       glm2 = predict(glmModel2, tmp, type='response')) %>% 
+  cbind(tmp) %>% 
+  select(glm:glm2, mesic1km) %>% 
+  pivot_longer(glm:glm2) %>% 
+  mutate(variable = 'mesic1km')
+
+colnames(elevData)[1] = colnames(canopyData)[1] = colnames(precipData)[1] = colnames(mesicData)[1] = 'xValue'
+
+tmp = rbind(elevData, canopyData, precipData, mesicData)
+
+ggplot(tmp, aes(x=xValue, y=value, color=name))+
+  facet_wrap(~variable, scales='free_x')+
+  geom_line()+
+  theme_bw()+
+  theme(panel.grid=element_blank())
+
+```
+
+**Do you notice any differences in the covariate patterns between the two models? Does this help you interpret the discrepancies between the predicted surfaces from the two models?**
+
+The covariate patterns between the two models are all the same except for precipitation where the relationship between the xValue and the predicted occurrence value does not increase as steeply for the background GLM model as it does for the true absence GLM model. For the mesic1km, canopy, and elevation covariates, the two GLM models represent similar patterns of occurrence as the xValue increases, however, the background GLM model consistently has lower predicted occurrence values compared to the true absence GLM model. 
+
+Based on my interpretation of these figures, I believe this figure does help identify the discrepencies betweeen the predicted surfaces from the two models. The consistently lower predicted occurence values in the background GLM model compared to the true absence GLM model indicate that the background GLM may be underestimating the effect of the covariates on varied thrush distribution, especially for precipitation. The true absence model is able to incorporate the known presence and absence of varied thrush, which allows for stronger/greater relationships to be established in regard to the covariates and the predicted probability of varied thrush occurence. 
+
+
+# Challenge 4 (4 points)
+
+Varied Thrush are considered forest-dependent, and thus one might characterize mesic forests as "habitat" for the species. 
+
+### Mesic Forest: Mean area of patches and total amount
+```{r}
+
+require(landscapemetrics)
+
+mesic2 = rast('https://github.com/ValenteJJ/SpatialEcology/raw/main/Week8/mesic.tif')
+plot(mesic2)
+
+lsm_l_ta(mesic2, directions=8)
+# Total amount = 11127096
+
+lsm_c_area_mn(mesic2, directions = 8)
+# Mean patch size = 741.5976
+
+```
+
+Using the SDM built from the random forest model, convert the landscape into "habitat" and "non-habitat." To do this, choose a threshold value in your SDM and convert all cells with predicted outcomes greater than this threshold to 1 and all cells with predicted values below your threshold to 0.
+
+### Identifying threshold and creating SDM based 'habitat' map
+```{r}
+
+tuneRF(y = as.factor(presBackCovs$pres), x=presBackCovs[,3:6], stepFactor = 2, ntreeTry = 500)
+
+rfModel = randomForest(as.factor(pres) ~ canopy + elev + mesic1km + precip, data=presBackCovs, mtry=2, ntree=500, na.action = na.omit)
+
+rfMap = predict(layers, rfModel, type='prob', index=2)
+
+rfmap2 = rfMap
+rfmap2[rfmap2>=0.05] = 1 
+rfmap2[rfmap2<0.05] = 0
+
+plot(rfMap, main = 'Random Forest SDM')
+plot(mesic2, main = 'Mesic Forest')
+plot(rfmap2, main = 'Habitat/Non-Habitat')
+
+```
+
+**Justify your choice of your threshold value.**
+
+I chose a threshold value of 0.1 after visually examining the SDM map alongside the mesic forest map. I compared the SDM map to the mesic forest map for selection of my threshold to reflect the fact that varied thrush are forest dependent. I chose a flexible cutoff value of 0.05 so that 'habitat' reflect ares where the probability of varied thrush occurrence may be very low, but not 0. This choice in threshold value is based on the idea that 'habitat' is a term that has a continuum of preferred to avoided, but is 'habitat' regardless. It is crucial to interpret the habitat/non-habitat map produced as a representation of potential habitat for varied thrush, not as a map of areas where varied thrush are likely to be present (1) or absent (0). The map of 'habitat' is missing crucial information to make these assumptions and ultimately is based on probability of presence values as low as 5%. 
+
+
+### Threshold SDM Habitat: Mean area of patches and total amount
+```{r}
+
+# Total amount of habitat = 2678472
+totalhab = lsm_c_ca(rfmap2, directions = 8)
+
+
+# Mean size of habitat patches based on 1/0 raster = 68.84824
+meanpz = lsm_c_area_mn(rfmap2, directions = 8)
+meanpz
+
+
+```
+
+
+**How do the habitat amount and patch size values compare between the mesic forest approach and the SDM-based approach? In what situations might you rely on one map over the other?**
+
+The mean patch size of mesic forest was 741.59 while the mean patch size of 'habitat' was 68.84. The total amount of mesic forest was 11127096 while the total amount of 'habitat' was 2678472. The mesic forest approach may be useful if you are interested in maintaining larger and more continuous patches of potential habitat for varied thrush. However, the SDM approach may be more useful if you are specifically interested in how the interaction between several covariates (not just mesic forest) influences the distribution of varied thrush. This method would also be of more use in situations where there are limited resources for management efforts and could be used to pinpoint smaller patches where varied thrush are most likely to occur for prioritizing allocation of resources. Additionally, at large scales, the SDM approach may be more realistic while at smaller scales, sampling may be possible using all areas wher mesic forest is present. 
+
+
+
+
+
+# Challenge 5 (4 points)
+
+When we fit the Maxent model in the lab, we used a regularization constant of 1. Fit the model two more times, using regularization (regmult) constants of 0.5 and 3. Construct figures showing the relationship between the 4 explanatory variables and the predicted outcome from these 3 fitted Maxent models.
+
+## Maxent models: Regularization constant 0.5, 1.0, 3.0
+```{r}
+
+pbVect = presBackCovs$pres
+covs = presBackCovs %>% select(canopy:precip)
+
+
+# regularization constant of 0.5
+maxentModel2 = maxnet(p = pbVect,
+                     data= covs,
+                     regmult = 0.5,
+                     classes='lqpht')
+
+plot(maxentModel2, type='logistic')
+
+maxentMap2 = predictMaxNet(maxentModel2, layers, type='logistic')
+
+par(mfrow=c(1,1))
+plot(maxentMap2, main = "Regularization = 0.5")
+
+# regularization constant of 1 
+maxentModel = maxnet(p = pbVect,
+                     data= covs,
+                     regmult = 1,
+                     classes='lqpht')
+
+plot(maxentModel, type='logistic')
+
+maxentMap = predictMaxNet(maxentModel, layers, type='logistic')
+
+par(mfrow=c(1,1))
+plot(maxentMap, main = "Regularization = 1")
+
+
+# regularization constant of 3 
+maxentModel3 = maxnet(p = pbVect,
+                     data= covs,
+                     regmult = 3,
+                     classes='lqpht')
+
+plot(maxentModel3, type='logistic')
+
+maxentMap3 = predictMaxNet(maxentModel3, layers, type='logistic')
+
+par(mfrow=c(1,1))
+plot(maxentMap3, main = "Regularization = 3")
+
+```
+
+**What is the regularization constant doing? Hint: you may need to Google it.**
+
+As the regularization constant increases from 0.5 to 1 to 3, all probability of occurrence values in the SDM map appear to increase and the map becomes less detailed. According to Google, the regularization constant is responsible for controlling the complexity of the model. This is done by adding a penalty term to the likelihood function and prevents the model from fitting the data too closely. In other words, a larger regularization constant has a stronger penalty and leads to simpler models/maps while the opposite is true for smaller regularization constants. Determining a regularization constant for a Maxent model is essentially a trade-off between model complexity and improving the models ability to generalize new data by avoiding overfitting. 
+
+
