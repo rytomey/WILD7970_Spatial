@@ -4,8 +4,56 @@ output: html_notebook
 ---
 
 ```{r}
+require(tidyverse)
+require(sf)
+require(sp)
+```
 
 
+```{r}
+
+species = c('skunk', 'raccoon', 'fox')
+
+method = c('strangeActivity', 'dead', 'roadkill', 'trapped', 'nuisance', 'other')
+
+doy = 1:365
+
+year = 2001:2023
+
+counties = st_read('/vsicurl/https://github.com/rytomey/WILD7970_Spatial/raw/main/FinalProject/studyarea/AL_SelectedCounties.shp')
+counties = as(counties, 'Spatial')
+
+randPoints = spsample(counties, type='random', n=10000)
+
+randPointsDf = data.frame(randPoints) %>% 
+  mutate(species = sample(species, size=10000, replace=T)) %>% 
+  mutate(raccoon = ifelse(species=='raccoon', 1, 0)) %>% 
+  mutate(fox = ifelse(species=='fox', 1, 0)) %>% 
+  mutate(skunk = ifelse(species=='skunk', 1, 0)) %>% 
+  mutate(method = sample(method, size=10000, replace=T)) %>% 
+  mutate(doy = sample(doy, size=10000, replace=T)) %>% 
+  mutate(year = sample(year, size=10000, replace=T))
+
+
+# #Create random 0/1
+# randPointsDf = randPointsDf %>% 
+#   mutate(result = sample(c(0,1), size=10000, replace=T))
+
+#Create 0/1 dependent on species
+
+tmp1 = randPointsDf %>% 
+  filter(species=='raccoon') %>% 
+  mutate(result = rbinom(n=nrow(.), size=1, prob=0.6))
+
+tmp2 = randPointsDf %>% 
+  filter(species == 'fox') %>% 
+  mutate(result = rbinom(n=nrow(.), size=1, prob=0.45))
+
+tmp3 = randPointsDf %>% 
+  filter(species=='skunk') %>% 
+  mutate(result = rbinom(n=nrow(.), size=1, prob=0.15))
+
+randPointsDf = rbind(tmp1, tmp2, tmp3)
 
 ```
 
