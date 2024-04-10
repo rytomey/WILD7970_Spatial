@@ -187,6 +187,7 @@ All three models show that along the western region of the map has the highest p
 
 The differences in resolution between the maps can be explained by the fact that the random forest and Bioclim models account for the complex interactions between predictor variables and therefore appear at a finer scale than the GLM model. Similarly, the GLM map scale having a maximum probability of varied thrush presence that was lower (0.35) compared to the Bioclim and random forest map scale maximum value (0.80) could be due to the fact that the model is more conservative in estimating the probability of presence because it interprets the relationship between covariates and presence only as linear and/or polynomial. The areas with 0% probability of varied thrush presence in the Bioclim map may represent an over simplified distribution of varied thrush as a result of the model weighing all covariates the same and not accounting for how the covariate actually influences the presence/absence of varied thrush. Ultimately, the random forest map is likely the most accurate map in predicting varied thrush distribution as the model is able to account for non-linear relationships, interactions between predictor variables and lower remaining uncertainty in the probability of varied thrush distribution by creating a bunch of classification trees through random bootstrapping. 
 
+$\color{red}{\text{Good. Another major difference is that bioclim is not relying on pseudo-absence data. +3.5}}$
 
 
 
@@ -253,6 +254,9 @@ plot(glmMap2, main = "Absence")
 The background GLM appears to be more conservative in the values assigned for probability of varied thrush presence with a maximum of 0.35 compared to a maximum of 0.8 for the true absence GLM. Furthermore, the true absence GLM map appears to be more certain of which areas in the map have little to no change of varied thrush presence (probability closer to 0.0) compared to the background GLM map which has the lower probability areas for varied thrush presence represented by a probability of presence greater than 0. A major discrepency between the two GLM maps is that they predict slightly different areas representing the greatest probability of varied thrush distribution. 
 
 My intuition is that the true absence GLM model is more reliable in this instance. I believe the true absence GLM model is more reliable because the probability of presence and absence appears to be more defined in the map by either high probability of presence or little to no probability of presence. In contrast, the background GLM map depicts that the there is at greatest a 35% chance that varied thrush will be present within any region of the study area. However, background GLM models may be more reliable in some instances as it is difficult to collect true absence data that accurately represents a location where a species is known to be absent compared to locations where the species was simply not detected during sampling.
+
+$\color{red}{\text{Nice. +4}}$
+
 
 
 # Challenge 3 (4 points)
@@ -329,6 +333,9 @@ The covariate patterns between the two models are all the same except for precip
 
 Based on my interpretation of these figures, I believe this figure does help identify the discrepencies betweeen the predicted surfaces from the two models. The consistently lower predicted occurence values in the background GLM model compared to the true absence GLM model indicate that the background GLM may be underestimating the effect of the covariates on varied thrush distribution, especially for precipitation. The true absence model is able to incorporate the known presence and absence of varied thrush, which allows for stronger/greater relationships to be established in regard to the covariates and the predicted probability of varied thrush occurence. 
 
+$\color{red}{\text{Importantly, the scale on the presence-background map is completely controlled by how many random background points you select, so that accounts for the larger predicted values for the presence-absence model. +3.5}}$
+
+
 
 # Challenge 4 (4 points)
 
@@ -395,6 +402,7 @@ meanpz
 
 The mean patch size of mesic forest was 741.59 while the mean patch size of 'habitat' was 68.84. The total amount of mesic forest was 11127096 while the total amount of 'habitat' was 2678472. The mesic forest approach may be useful if you are interested in maintaining larger and more continuous patches of potential habitat for varied thrush. However, the SDM approach may be more useful if you are specifically interested in how the interaction between several covariates (not just mesic forest) influences the distribution of varied thrush. This method would also be of more use in situations where there are limited resources for management efforts and could be used to pinpoint smaller patches where varied thrush are most likely to occur for prioritizing allocation of resources. Additionally, at large scales, the SDM approach may be more realistic while at smaller scales, sampling may be possible using all areas wher mesic forest is present. 
 
+$\color{red}{\text{Excellent +4}}$
 
 
 
@@ -456,4 +464,5 @@ plot(maxentMap3, main = "Regularization = 3")
 
 As the regularization constant increases from 0.5 to 1 to 3, all probability of occurrence values in the SDM map appear to increase and the map becomes less detailed. According to Google, the regularization constant is responsible for controlling the complexity of the model. This is done by adding a penalty term to the likelihood function and prevents the model from fitting the data too closely. In other words, a larger regularization constant has a stronger penalty and leads to simpler models/maps while the opposite is true for smaller regularization constants. Determining a regularization constant for a Maxent model is essentially a trade-off between model complexity and improving the models ability to generalize new data by avoiding overfitting. 
 
+$\color{red}{\text{Awesome work, Rylee. +4}}$
 
