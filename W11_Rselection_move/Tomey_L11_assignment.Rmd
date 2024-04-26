@@ -140,6 +140,8 @@ selRatioII$wi
 I noticed that the exponentiated coefficient and WI values generally follow the same order from lowest (urban) to highest (cypress swamp) of landcover types. However, the WI value generally is greater than the exponentiated coefficient. For example, cypress swamp has a greater wi value (5.266) compared to the exponentiated coefficient (5.000) and barren land has a greater wi value (1.655) compared to the exponentiated coefficient (1.571). In a broad view, WI values and exponentiated coefficient values both provide information on the importance/influence of each landcover type on use. The interpretation of the value being greater or smaller is also the similar, with higher values indicating a stronger impact/association with use. However, the fine scale interpretation of the values is different. While WI values represent the probability of use, the coefficients from the logistic regression represent the odds ratios of the land cover type compared to a reference land cover type. Coefficients may be more useful in identifying the impact of land cover on species use, while the WI values may be a more appropriate metric when identifying the probability of use for land cover types. 
 
 
+$\color{red}{\text{Pretty good. Basically, the exponentiated beta coefficients represent the odds ratios for the various cover types (i.e., the odds a point in that category is used divided by the odds is is not used). This is the same way that wi is calculated. The only difference here is that we're now including a random effect to account for non-independence among points selected by the same panther. +5}}$
+
 
 # Challenge 2 (5 points)
 
@@ -197,6 +199,8 @@ hist(allPS$step_speed, main = 'Distribution of Step Speeds (km/hr)',
 
 **When and why might you choose to sample from a distribution of step speeds to calculate potential step lengths rather than drawing from the distribution of step lengths itself?**
 Sampling from a distribution of step speeds rather than step lengths to calculate potential step lengths may be useful when you are more interested in a behavior or movement that is related to the speed rather than distance. For example, if you are studying the energy expenditure, different speeds may represent varying levels of effort. Another example might be something related to the bird/nest studies we have discussed in class. If you are interested in the temporal relationship between movement and something like diurnal activity, the step speeds may serve as a metric more appropriate for calculating the potential step lengths rather than the step lengths. Ultimately, using the step speed may provide different and additional information to movement patterns. 
+
+$\color{red}{\text{I think your step speeds are off. Are you sure these are in km/hour? +4}}$
 
 
 
@@ -298,6 +302,8 @@ STRTp6
 
 Based on a metric where 1 indicates a straight line path and 0 represents an infinitely tortuous path, panther 6 [147] took the least tortuous path (0.1561892) and panther 1 [100] took the most tortuous path (0.001238409). 
 
+$\color{red}{\text{Awesome. +5}}$
+
 # Challenge 4 (5 points)
 
 For each panther, calculate the frequency with which locations were recorded as points per day. Plot path straightness as a function of frequency (there should be 6 points on this figure, one per panther).
@@ -394,4 +400,4 @@ plot(frequency, straight,
 There does not appear to be a strong relationship, but I am not sure if my calculations for these metrics are correct (sorry!). I would think that as the frequency in points per day increases, the straightness would decrease. This could be related to barriers to movement, resource selection, and previous area nagivation suggesting habitat use. However, this is difficult to definitively say with such a wide range of drivers to movements in the current panther study. 
 
 
-
+$\color{red}{\text{Yeah, I don't know what's up here. The outcome of this analysis turned out to be wonky for some reason. +5}}$
