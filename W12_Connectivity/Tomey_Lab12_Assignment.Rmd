@@ -124,6 +124,8 @@ chart.Correlation(Dist, histogram=T)
 **Which tend to be the longest, which tend to be the shortest, and why? In what situations might you expect to find strong differences between Euclidean distance and the other metrics of effective distance?**
 I have subset the correlation matrices so that we are comparing the first point to points 2-5. The randomized shortest distances seem to be the longest, while the Euclidean distances tend to be the shortest.This is because of the complexity of the different matrices, and what barriers/resistance/corridors are considered when calculating the metric. We would expect Euclidean distance to be the shortest, because it is a straight-line distance. The randomized shortest path and circuit distance may be closer in value, but the circuit distance metric is represented by steps and not actual distance. If the theta of the random steps increased beyond 0, the least cost values and random step values may be closer.  We would expect a strong difference between the Euclidean distance and the other metrics of effective distance in situations where there is a lot of resistance and fragmentation between the areas because Euclidean distance ignores these factors and assumes that the areas are physically closer and more connected. 
 
+$\color{red}{\text{Excellent. +5}}$
+
 
 # Challenge 2 (5 points)
 
@@ -207,7 +209,7 @@ Cypress swamp, cropland, and fresh water marsh as the land cover types with the 
 
 
 
-
+$\color{red}{\text{I'm not exactly sure what went wrong here, but hardwood swamp should be in the top 3, not cropland.  Either way, good work. +4}}$
 
 
 # Challenge 3 (5 points)
@@ -235,6 +237,7 @@ plot(passageMapT2)
 **What patterns do you see emerge as theta increases? Comment on the tradeoffs between biological realism and ease of conservation planning based on these three different maps of connectivity.**
 As theta increases, the movement probability in each cell increases and a focuses/clear path becomes more obvious. When theta is increased, the assessment of movement is able to make random deviations from the shortest path to construct a path where the probability of movement is greater than just on the shortest path. Even though we see a longer but more clear path as we increase theta, in considering biological realism, there are a lot of caveats to assuming the panthers will use this path. For example, we are assuming a level of knowledge of the landscape for the panthers. While the theta = 0 may be the most accurate assessment of how panthers move through the environment when considering all the assumptions, the maps where we increased theta may be more useful for conservation planning. Conservation management could use the more clear and focused maps to create corridors that facilitate movement and prevent further resistance along the longer path, or they could improve the ability for panthers to move through the areas of lower movement probability to shorten the path and increase movement probability along the shorter path. 
 
+$\color{red}{\text{As theta increases, we're actually starting to see convergence on the single, best least cost path. In other words, as theta increases, there is less freedom to deviate from the shortest/least cost path. +4}}$
 
 
 # Challenge 4 (5 points)
@@ -458,3 +461,4 @@ Prob Connect:     0.002650867   0.005632307
 
 The removal of patch 6 compared to patch 7 has varying effects on the landscape-level connectivity based on the metric being used. Based on the connectance metric, the negative effect of removing patch 7 is greater than removing patch 6, however this is a simple measure for unweighted graphs. For the integral index of connectivity and the probability of connectivity, the removal of patch 6 seems to reduce the landscape connectivity more than 7. Therefore, I would conclude that the loss of patch 6 is more important in terms of its impacts on landscape-level connectivity. 
 
+$\color{red}{\text{Hm, it seems you got all of the numbers right, but I'm reading this differently than you. Both IIC and PC are lower when you remove patch 7 than when you remove patch 6, so removal of patch 7 has the most negative effect on connectivity. +4 }}$
